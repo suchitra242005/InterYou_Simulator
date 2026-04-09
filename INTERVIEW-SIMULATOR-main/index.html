@@ -1,0 +1,41 @@
+
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Create Animated Logo Intro</title>
+      <script>
+        window.onerror = function(msg, url, line, col, error) {
+          const msgStr = String(msg);
+          if (msgStr.includes('clipboard') || 
+              msgStr.includes('image input') ||
+              msgStr.includes('model does not support') ||
+              (error && String(error).includes('clipboard')) ||
+              (error && String(error).includes('image input'))) {
+            console.warn('Extension error suppressed:', msgStr);
+            return true;
+          }
+          return false;
+        };
+        window.onunhandledrejection = function(event) {
+          const reason = event.reason;
+          if (reason) {
+            const reasonStr = String(reason);
+            if (reasonStr.includes('clipboard') || 
+                reasonStr.includes('image input') ||
+                reasonStr.includes('model does not support')) {
+              console.warn('Extension promise rejected suppressed:', reasonStr);
+              event.preventDefault();
+            }
+          }
+        };
+      </script>
+    </head>
+
+    <body>
+      <div id="root"></div>
+      <script type="module" src="/src/main.tsx"></script>
+    </body>
+  </html>
+  

@@ -1,0 +1,795 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Download, 
+  Edit, 
+  Sparkles,
+  ArrowRight,
+  ChevronLeft,
+  LogOut,
+  Mail,
+  Phone,
+  Linkedin,
+  Globe,
+  Briefcase,
+  Target,
+  GraduationCap,
+  Award,
+  Code,
+  TrendingUp,
+  FileText,
+  CheckCircle,
+  Loader2,
+  User,
+  Calendar,
+  Star
+} from 'lucide-react';
+import { Resume } from '../services/api';
+import { apiService, CreateInterviewData } from '../services/api';
+import { toast } from 'sonner';
+
+interface ResumeSummaryProps {
+  resume: Resume | null;
+  onContinue: (interviewId: string) => void;
+  onBack: () => void;
+  onLogout: () => void;
+}
+
+export function ResumeSummary({ resume, onContinue, onBack, onLogout }: ResumeSummaryProps) {
+  const [targetCompany, setTargetCompany] = useState('');
+  const [interviewType, setInterviewType] = useState<'technical' | 'behavioral' | 'mixed'>('mixed');
+  const [targetRole, setTargetRole] = useState('');
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [numQuestions, setNumQuestions] = useState(5);
+  const [isScanning, setIsScanning] = useState(true);
+  const [isCreatingInterview, setIsCreatingInterview] = useState(false);
+  const [showAtsModal, setShowAtsModal] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsScanning(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const resumeData = resume?.parsedData ? {
+    name: resume.parsedData.name || resume.fileName?.replace('.pdf', '').replace('.docx', '').replace('.doc', '') || 'Resume',
+    email: resume.parsedData.email || '',
+    phone: resume.parsedData.phone || '',
+    linkedin: resume.parsedData.linkedin || '',
+    portfolio: resume.parsedData.portfolio || '',
+    skills: resume.parsedData.skills || [],
+    technicalSkills: resume.parsedData.technicalSkills || [],
+    softSkills: resume.parsedData.softSkills || [],
+    experience: resume.parsedData.experience?.map((exp: any) => ({
+      title: exp.position || exp.company || 'Experience',
+      company: exp.company || '',
+      description: exp.description || '',
+      duration: exp.duration || '',
+      isCurrent: exp.isCurrent || false,
+      isFresher: exp.company?.toLowerCase() === 'fresher' || exp.position?.toLowerCase() === 'fresher',
+    })) || [],
+    projects: resume.parsedData.projects?.map((proj: any) => ({
+      title: proj.name || 'Project',
+      description: proj.description || '',
+      technologies: proj.technologies || [],
+      url: proj.url || '',
+    })) || [],
+    education: resume.parsedData.education?.map((edu: any) => ({
+      institution: edu.institution || '',
+      degree: edu.degree || '',
+      field: edu.field || '',
+      year: edu.year || '',
+      grade: edu.grade || '',
+    })) || [],
+    certifications: resume.parsedData.certifications?.map((cert: any) => ({
+      name: cert.name || '',
+      issuer: cert.issuer || '',
+      year: cert.year || '',
+    })) || [],
+    languages: resume.parsedData.languages || [],
+    summary: resume.parsedData.summary || '',
+    isFresher: resume.parsedData.isFresher || false,
+    atsScore: (resume as any).atsScore || 0,
+    atsFeedback: (resume as any).atsFeedback || { strengths: [], weaknesses: [], overall: '' },
+    suggestions: (resume as any).suggestions || [],
+  } : {
+    name: 'Resume',
+    email: '',
+    phone: '',
+    linkedin: '',
+    portfolio: '',
+    skills: [],
+    technicalSkills: [],
+    softSkills: [],
+    experience: [],
+    projects: [],
+    education: [],
+    certifications: [],
+    languages: [],
+    summary: '',
+    isFresher: false,
+    atsScore: 0,
+    atsFeedback: { strengths: [], weaknesses: [], overall: '' },
+    suggestions: [],
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+      {/* Scanning Overlay */}
+      <AnimatePresence>
+        {isScanning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-center"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full mx-auto mb-6"
+              />
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Analyzing Resume</h3>
+              <p className="text-slate-600">Extracting skills, experience & education...</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 bg-gradient-to-t from-teal-500 via-emerald-500 to-green-500 rounded-full"
+                    style={{ height: `${i * 6 + 10}px` }}
+                  />
+                ))}
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                Inter<span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">You</span>
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </button>
+              <button
+                onClick={onLogout}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        {/* Page Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-50 to-emerald-50 px-5 py-2 rounded-full border border-teal-200/50 mb-6">
+            <Sparkles className="w-5 h-5 text-teal-600" />
+            <span className="text-sm font-semibold text-teal-700">AI-Powered Analysis</span>
+          </div>
+          <h2 className="text-4xl font-bold text-slate-900 mb-4">
+            Resume <span className="bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent">Summary</span>
+          </h2>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            Your resume has been analyzed. Review your profile and set up your interview preferences below.
+          </p>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left Column - Profile */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="lg:col-span-2 space-y-6"
+          >
+            {/* Profile Card */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden">
+              <div className="bg-gradient-to-r from-teal-600 via-emerald-600 to-green-600 px-8 py-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <User className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="text-white">
+                    <h3 className="text-2xl font-bold">{resumeData.name}</h3>
+                    <div className="flex flex-wrap items-center gap-3 mt-2 text-white/80 text-sm">
+                      {resumeData.email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-4 h-4" />
+                          <span>{resumeData.email}</span>
+                        </div>
+                      )}
+                      {resumeData.phone && (
+                        <div className="flex items-center gap-1">
+                          <Phone className="w-4 h-4" />
+                          <span>{resumeData.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                    {resumeData.linkedin || resumeData.portfolio ? (
+                      <div className="flex gap-3 mt-2">
+                        {resumeData.linkedin && (
+                          <a href={`https://${resumeData.linkedin}`} target="_blank" rel="noopener noreferrer" 
+                             className="flex items-center gap-1 text-white/80 hover:text-white text-sm">
+                            <Linkedin className="w-4 h-4" />
+                            <span>LinkedIn</span>
+                          </a>
+                        )}
+                        {resumeData.portfolio && (
+                          <a href={`https://${resumeData.portfolio}`} target="_blank" rel="noopener noreferrer"
+                             className="flex items-center gap-1 text-white/80 hover:text-white text-sm">
+                            <Globe className="w-4 h-4" />
+                            <span>Portfolio</span>
+                          </a>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-8 space-y-8">
+                {/* Summary */}
+                {resumeData.summary && (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">Professional Summary</h4>
+                    <p className="text-slate-700 leading-relaxed bg-slate-50 rounded-xl p-4">{resumeData.summary}</p>
+                  </div>
+                )}
+
+                {/* Skills */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                      <Code className="w-4 h-4 text-white" />
+                    </div>
+                    <h4 className="font-bold text-slate-900">Skills & Expertise</h4>
+                  </div>
+                  {resumeData.technicalSkills.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Technical Skills</p>
+                      <div className="flex flex-wrap gap-2">
+                        {resumeData.technicalSkills.map((skill, index) => (
+                          <motion.span
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.02 }}
+                            className="px-3 py-1.5 bg-gradient-to-r from-teal-50 to-emerald-50 border border-teal-200/50 text-teal-700 text-sm font-medium rounded-lg"
+                          >
+                            {skill}
+                          </motion.span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {resumeData.softSkills.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Soft Skills</p>
+                      <div className="flex flex-wrap gap-2">
+                        {resumeData.softSkills.map((skill, index) => (
+                          <motion.span
+                            key={index}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.02 }}
+                            className="px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/50 text-emerald-700 text-sm font-medium rounded-lg"
+                          >
+                            {skill}
+                          </motion.span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Experience */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                      <Briefcase className="w-4 h-4 text-white" />
+                    </div>
+                    <h4 className="font-bold text-slate-900">Experience</h4>
+                  </div>
+                  <div className="space-y-4">
+                    {resumeData.experience.length > 0 ? (
+                      resumeData.experience.map((item: any, index: number) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className={`p-5 rounded-xl border ${
+                            item.isFresher 
+                              ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50' 
+                              : 'bg-slate-50 border-slate-200/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h5 className={`font-bold ${item.isFresher ? 'text-amber-700' : 'text-slate-900'}`}>
+                                {item.title}
+                              </h5>
+                              {item.company && !item.isFresher && (
+                                <p className="text-sm text-slate-600">{item.company}</p>
+                              )}
+                            </div>
+                            {item.isFresher && (
+                              <span className="px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full">
+                                FRESHER
+                              </span>
+                            )}
+                          </div>
+                          {item.duration && (
+                            <div className="flex items-center gap-1 text-xs text-slate-500 mb-2">
+                              <Calendar className="w-3 h-3" />
+                              <span>{item.duration}</span>
+                            </div>
+                          )}
+                          {item.description && (
+                            <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
+                          )}
+                        </motion.div>
+                      ))
+                    ) : (
+                      <p className="text-slate-500 text-sm">No experience data available</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Education */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-teal-500 rounded-lg flex items-center justify-center">
+                      <GraduationCap className="w-4 h-4 text-white" />
+                    </div>
+                    <h4 className="font-bold text-slate-900">Education</h4>
+                  </div>
+                  <div className="space-y-4">
+                    {resumeData.education.length > 0 ? (
+                      resumeData.education.map((edu: any, index: number) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="p-5 bg-gradient-to-br from-blue-50/50 to-teal-50/50 border border-blue-200/50 rounded-xl"
+                        >
+                          <h5 className="font-bold text-slate-900">{edu.degree} {edu.field && `in ${edu.field}`}</h5>
+                          <p className="text-sm text-slate-600">{edu.institution}</p>
+                          <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                            {edu.year && <span>{edu.year}</span>}
+                            {edu.grade && <span>Grade: {edu.grade}</span>}
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <p className="text-slate-500 text-sm">No education data available</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Projects */}
+                {resumeData.projects.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-white" />
+                      </div>
+                      <h4 className="font-bold text-slate-900">Projects</h4>
+                    </div>
+                    <div className="space-y-4">
+                      {resumeData.projects.map((project: any, index: number) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="p-5 bg-gradient-to-br from-amber-50/50 to-orange-50/50 border border-amber-200/50 rounded-xl"
+                        >
+                          <h5 className="font-bold text-amber-700">{project.title}</h5>
+                          {project.description && (
+                            <p className="text-sm text-slate-600 mt-1">{project.description}</p>
+                          )}
+                          {project.technologies.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {project.technologies.map((tech: string, i: number) => (
+                                <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded">
+                                  {tech}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Certifications & Languages */}
+                {(resumeData.certifications.length > 0 || resumeData.languages.length > 0) && (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {resumeData.certifications.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Award className="w-5 h-5 text-violet-600" />
+                          <h4 className="font-bold text-slate-900">Certifications</h4>
+                        </div>
+                        <div className="space-y-2">
+                          {resumeData.certifications.map((cert: any, index: number) => (
+                            <div key={index} className="flex items-center gap-2 p-3 bg-violet-50/50 rounded-lg">
+                              <CheckCircle className="w-4 h-4 text-violet-600" />
+                              <div>
+                                <p className="text-sm font-medium text-slate-900">{cert.name}</p>
+                                {cert.issuer && <p className="text-xs text-slate-500">{cert.issuer}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {resumeData.languages.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Globe className="w-5 h-5 text-teal-600" />
+                          <h4 className="font-bold text-slate-900">Languages</h4>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {resumeData.languages.map((lang: string, index: number) => (
+                            <span key={index} className="px-3 py-1.5 bg-teal-50 border border-teal-200/50 text-teal-700 text-sm font-medium rounded-lg">
+                              {lang}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ATS Score Button */}
+          {resumeData.atsScore > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="lg:col-span-3"
+            >
+              <button
+                onClick={() => setShowAtsModal(true)}
+                className="w-full bg-white rounded-2xl shadow-lg border border-slate-200/50 p-6 flex items-center justify-between hover:shadow-xl transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-900 text-lg">ATS Score & Analysis</h3>
+                    <p className="text-slate-500 text-sm">View resume evaluation and improvement suggestions</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <span className={`text-2xl font-bold ${resumeData.atsScore >= 70 ? 'text-emerald-600' : resumeData.atsScore >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {resumeData.atsScore}
+                    </span>
+                    <span className="text-slate-400 text-sm">/100</span>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
+            </motion.div>
+          )}
+
+          {/* Right Column - Interview Setup */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-1"
+          >
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden sticky top-28">
+              <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-lg">Interview Setup</h3>
+                    <p className="text-white/70 text-sm">Customize your session</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Target Company</label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={targetCompany}
+                      onChange={(e) => setTargetCompany(e.target.value)}
+                      placeholder="e.g., Google"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Target Role</label>
+                  <div className="relative">
+                    <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={targetRole}
+                      onChange={(e) => setTargetRole(e.target.value)}
+                      placeholder="e.g., Software Engineer"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Interview Type</label>
+                  <select
+                    value={interviewType}
+                    onChange={(e) => setInterviewType(e.target.value as 'technical' | 'behavioral' | 'mixed')}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all cursor-pointer"
+                  >
+                    <option value="technical">Technical</option>
+                    <option value="behavioral">Behavioral</option>
+                    <option value="mixed">Mixed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Difficulty</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['easy', 'medium', 'hard'] as const).map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setDifficulty(level)}
+                        className={`py-2.5 rounded-lg text-sm font-semibold capitalize transition-all ${
+                          difficulty === level
+                            ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Number of Questions</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {([3, 5, 7, 10] as const).map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setNumQuestions(num)}
+                        className={`py-2.5 rounded-lg text-sm font-bold transition-all ${
+                          numQuestions === num
+                            ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    onClick={async () => {
+                      if (!resume) {
+                        toast.error('No resume found. Please go back and upload a resume.');
+                        return;
+                      }
+                      if (!targetCompany.trim() || !targetRole.trim()) {
+                        toast.error('Please enter a company and role.');
+                        return;
+                      }
+
+                      try {
+                        setIsCreatingInterview(true);
+                        const interviewData: CreateInterviewData = {
+                          resumeId: resume._id,
+                          company: targetCompany,
+                          role: targetRole,
+                          interviewType,
+                          difficulty,
+                          questionCount: numQuestions,
+                        };
+                        const interview = await apiService.createInterview(interviewData);
+                        toast.success('Interview created! Generating questions...');
+                        await apiService.generateQuestions(interview._id);
+                        toast.success('Interview ready!');
+                        onContinue(interview._id);
+                      } catch (error) {
+                        console.error('Failed to create interview:', error);
+                        toast.error('Failed to create interview. Please try again.');
+                      } finally {
+                        setIsCreatingInterview(false);
+                      }
+                    }}
+                    disabled={isCreatingInterview || !resume}
+                    className="w-full py-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group disabled:cursor-not-allowed"
+                  >
+                    {isCreatingInterview ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Setting up...
+                      </>
+                    ) : (
+                      <>
+                        Start Interview
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <p className="text-xs text-center text-slate-500">
+                  Questions will be tailored based on your resume
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ATS Modal */}
+          <AnimatePresence>
+            {showAtsModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowAtsModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 sticky top-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white text-lg">ATS Score & Analysis</h3>
+                        <p className="text-white/70 text-sm">Resume evaluation</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowAtsModal(false)}
+                      className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <div className="text-center mb-6">
+                    <div className="relative w-32 h-32 mx-auto mb-3">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="64" cy="64" r="56" stroke="#e2e8f0" strokeWidth="12" fill="none" />
+                        <circle 
+                          cx="64" cy="64" r="56" 
+                          stroke={resumeData.atsScore >= 70 ? '#10b981' : resumeData.atsScore >= 50 ? '#f59e0b' : '#ef4444'} 
+                          strokeWidth="12" 
+                          fill="none"
+                          strokeDasharray={`${(resumeData.atsScore / 100) * 352} 352`}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-slate-900">{resumeData.atsScore}</span>
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium text-slate-600">ATS Score</p>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <h4 className="font-bold text-emerald-700 mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Strengths
+                      </h4>
+                      <ul className="space-y-2">
+                        {resumeData.atsFeedback.strengths?.slice(0, 4).map((strength, i) => (
+                          <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                            <span className="text-emerald-500 mt-0.5">•</span>
+                            {strength}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-red-700 mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 rotate-180" />
+                        Areas to Improve
+                      </h4>
+                      <ul className="space-y-2">
+                        {resumeData.atsFeedback.weaknesses?.slice(0, 4).map((weakness, i) => (
+                          <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                            <span className="text-red-500 mt-0.5">•</span>
+                            {weakness}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {resumeData.suggestions?.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        AI Suggestions for Improvement
+                      </h4>
+                      <div className="space-y-3">
+                        {resumeData.suggestions.slice(0, 6).map((suggestion, i) => (
+                          <div key={i} className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200/50">
+                            <span className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                              {i + 1}
+                            </span>
+                            <p className="text-sm text-slate-700">{suggestion}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {resumeData.atsFeedback.overall && (
+                    <div className="p-4 bg-slate-50 rounded-xl">
+                      <p className="text-sm text-slate-700">
+                        <span className="font-semibold">Overall: </span>
+                        {resumeData.atsFeedback.overall}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+}
